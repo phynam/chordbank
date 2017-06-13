@@ -7,35 +7,35 @@
         },
         {
             type: 'm',
-            recipe: ['-3', '5']
+            recipe: ['b3', '5']
         },
         {
             type: 'dim',
-            recipe: ['-3', '--5']
+            recipe: ['b3', 'bb5']
         },
         {
             type: 'aug',
-            recipe: ['3', '++5']
+            recipe: ['3', '##5']
         },
         {
             type: 'dim7',
-            recipe: ['-3', '--5', '--7']
+            recipe: ['b3', 'bb5', 'bb7']
         },
         {
-            type: 'm7-5',
-            recipe: ['-3', '--5', '-7']
+            type: 'm7b5',
+            recipe: ['b3', 'bb5', 'b7']
         },
         {
             type: 'm7',
-            recipe: ['-3', '5', '-7']
+            recipe: ['b3', '5', 'b7']
         },
         {
             type: 'mM7',
-            recipe: ['-3', '5', '7']
+            recipe: ['b3', '5', '7']
         },
         {
             type: '7',
-            recipe: ['3', '5', '-7']
+            recipe: ['3', '5', 'b7']
         },
         {
             type: 'M7',
@@ -43,11 +43,11 @@
         },
         {
             type: 'aug7',
-            recipe: ['3', '++5', '-7']
+            recipe: ['3', '##5', 'b7']
         },
         {
             type: 'augM7',
-            recipe: ['3', '++5', '-7']
+            recipe: ['3', '##5', 'b7']
         }
     ];
 
@@ -66,6 +66,76 @@
         }
     }
 
+    var _Notes = function() {
+
+        var _notes = [
+            { note: 'C', semitones: 0 },
+            { note: 'C#', semitones: 1 },
+            { note: 'Db', semitones: 1 },
+            { note: 'D', semitones: 2 },
+            { note: 'D#', semitones: 3 },
+            { note: 'Eb', semitones: 3 },
+            { note: 'E', semitones: 4 },
+            { note: 'F', semitones: 5 },
+            { note: 'F#', semitones: 6 },
+            { note: 'Gb', semitones: 6 },
+            { note: 'G', semitones: 7 },
+            { note: 'G#', semitones: 8 },
+            { note: 'Ab', semitones: 8 },
+            { note: 'A', semitones: 9 },
+            { note: 'A#', semitones: 10 },
+            { note: 'Bb', semitones: 10 },
+            { note: 'B', semitones: 11 }
+        ];
+
+        /**
+         * Validate a given note string and either return false, or execute callback
+         *
+         * @param note
+         * @param callback
+         */
+        this.validate_note = function(note, callback) {
+
+            var natural = note.charAt(0).toUpperCase(),
+                accidental = note.charAt(1) || undefined,
+                note = (accidental) ? natural + accidental : natural,
+                valid_accidentals = ['b', '#'],
+                note = this.find_by_note_name(note);
+
+            if(note && (typeof accidental == 'undefined' || valid_accidentals.indexOf(accidental) !== -1 )) {
+                callback(note, accidental);
+                return true;
+            } else {
+                _notify('warn', 'Invalid note entered');
+                return false;
+            }
+        }
+
+        this.find_by_semitones = function(semitones, enharmonic_type) {
+            var result = [];
+            for (var i = 0; i < _notes.length; i++ ) {
+                if (_notes[i].semitones == semitones) {
+                    if(!enharmonic_type || _notes[i].note.length == 1 || (enharmonic_type && _notes[i].note.indexOf(enharmonic_type) !== -1)) {
+                        result.push(_notes[i])
+                    }
+                }
+            }
+            console.log(result);
+            return result[0];
+        }
+
+        this.find_by_note_name = function(note) {
+            for (var i = 0; i < _notes.length; i++ ) {
+                if (_notes[i].note == note) {
+                    return _notes[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    var _notes = new _Notes();
+
     /**
      * Return notes at given intervals
      *
@@ -73,10 +143,49 @@
      */
     var _IntervalCalculator = function() {
 
-        var _note_count = 12;
+        var _intervals = {
+            1: { type: 'perfect', semitones: 0 },
+            2: { type: 'major', semitones: 2 },
+            3: { type: 'major', semitones: 4 },
+            4: { type: 'perfect', semitones: 5 },
+            5: { type: 'perfect', semitones: 7 },
+            6: { type: 'major', semitones: 9 },
+            7: { type: 'major', semitones: 11 },
+            8: { type: 'perfect', semitones: 12 },
+            //9: { type: 'perfect', semitones: 0 },
+            //10: { type: 'perfect', semitones: 0 },
+            //11: { type: 'perfect', semitones: 0 },
+            //12: { type: 'perfect', semitones: 0 }
+        }
 
-        var _notes = {
-            'C': 1, 'C#': 2, 'Db': 2, 'D': 3, 'D#': 4, 'Eb': 4, 'E': 5, 'F': 6, 'F#': 7, 'Gb': 7, 'G': 8, 'G#': 9, 'Ab': 9, 'A': 10, 'A#': 11, 'Bb': 11, 'B': 12, 'Cb': 12
+        var _alterations = {
+            '#': 1, 'b': -1, '##': 2, 'bb': -2
+        }
+
+        function _parse_interval(interval_string, callback) {
+
+            var interval = interval_string.match(/\d/g),
+                alteration_name,
+                alteration_value = 0;
+
+            for(var key in _alterations) {
+                if(_alterations.hasOwnProperty(key) && interval_string.indexOf(key) !== -1) {
+                    alteration_name = key;
+                    alteration_value = _alterations[key];
+                }
+            }
+
+            if(interval && _intervals[interval.join('')]) {
+
+                interval = interval.join('');
+                if(callback) {
+                    callback(parseInt(interval), alteration_name, alteration_value);
+                }
+                return interval;
+            } else {
+                _notify('warn', 'Interval ' + interval_string + ' not valid');
+                return false;
+            }
         }
 
         /**
@@ -84,41 +193,42 @@
          *
          * @param root
          * @param interval
-         * @param type
          */
-        this.note_at_interval = function(root, interval, type) {
+        this.note_at_interval = function(root, interval) {
 
-            var key_type;
-            root = root.charAt(0).toUpperCase() + root.slice(1);
+            _notes.validate_note(root, function(note, accidental) {
 
-            if(_notes[root]) {
+                _parse_interval(interval, function(interval, alteration_name, alteration_value) {
 
-                if(root.charAt(1) === 'b') {
-                    key_type = 'flat'
-                } else if(root.charAt(1) === '#') {
-                    key_type = 'sharp'
-                }
+                    var int = _intervals[interval],
+                        root_note = _notes.find_by_note_name(note.note),
+                        augmented_interval,
+                        enharmonic_type = (alteration_name) ? alteration_name.charAt(0) : alteration_name;
 
-                var root_int = _notes[root],
-                    total_int = root_int + interval,
-                    calculated_int = (total_int <= _note_count) ? total_int : total_int - _note_count;
-
-                var result = [];
-                for (var key in _notes) {
-                    if (_notes.hasOwnProperty(key) && _notes[key] == calculated_int) {
-                        result.push(key);
+                    if(!enharmonic_type) {
+                        enharmonic_type = accidental;
                     }
-                }
 
-                console.log(result);
+                    if (int.type == 'perfect') {
+                        if (alteration_name == '##') {
+                            alteration_value --;
+                        } else if (alteration_name == 'bb') {
+                            alteration_value ++;
+                        }
+                    }
 
-                // Find the root in the table, store its interval
-                // Add the interval to the root inerval and return note name(s) at that position
-                // If flat, return the flat, else return the sharp version
+                    augmented_interval = int.semitones + alteration_value;
+                    var total_interval = augmented_interval + root_note.semitones;
 
-            } else {
-                _notify('warn', 'Invalid root note');
-            }
+                    calculated_interval = (total_interval < 12) ? total_interval : total_interval - 12;
+
+                    // Apply alteration to interval semitones
+
+                    var interval_note = _notes.find_by_semitones(calculated_interval, enharmonic_type);
+
+                    console.log(interval_note);
+                });
+            });
         }
     }
 
@@ -152,8 +262,7 @@
          * @param args
          */
         this.create_chord = function(args) {
-            _calculator.note_at_interval(args.root, 1);
-            //return new Chord(args);
+            _calculator.note_at_interval(args.root, 'b5');
         }
 
         _initialize();
@@ -255,7 +364,8 @@
                     type: pattern.type,
                     recipe: pattern.recipe
                 };
-                console.log(_factory.create_chord(params));
+
+                return _factory.create_chord(params);
             });
         };
 
