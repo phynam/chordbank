@@ -69,23 +69,23 @@
     var _Notes = function() {
 
         var _notes = [
-            { note: 'C', semitones: 0 },
-            { note: 'C#', semitones: 1 },
-            { note: 'Db', semitones: 1 },
-            { note: 'D', semitones: 2 },
-            { note: 'D#', semitones: 3 },
-            { note: 'Eb', semitones: 3 },
-            { note: 'E', semitones: 4 },
-            { note: 'F', semitones: 5 },
-            { note: 'F#', semitones: 6 },
-            { note: 'Gb', semitones: 6 },
-            { note: 'G', semitones: 7 },
-            { note: 'G#', semitones: 8 },
-            { note: 'Ab', semitones: 8 },
-            { note: 'A', semitones: 9 },
-            { note: 'A#', semitones: 10 },
-            { note: 'Bb', semitones: 10 },
-            { note: 'B', semitones: 11 }
+            { name: 'C', semitones: 0 },
+            { name: 'C#', semitones: 1 },
+            { name: 'Db', semitones: 1 },
+            { name: 'D', semitones: 2 },
+            { name: 'D#', semitones: 3 },
+            { name: 'Eb', semitones: 3 },
+            { name: 'E', semitones: 4 },
+            { name: 'F', semitones: 5 },
+            { name: 'F#', semitones: 6 },
+            { name: 'Gb', semitones: 6 },
+            { name: 'G', semitones: 7 },
+            { name: 'G#', semitones: 8 },
+            { name: 'Ab', semitones: 8 },
+            { name: 'A', semitones: 9 },
+            { name: 'A#', semitones: 10 },
+            { name: 'Bb', semitones: 10 },
+            { name: 'B', semitones: 11 }
         ];
 
         /**
@@ -103,8 +103,8 @@
                 note = this.find_by_note_name(note);
 
             if(note && (typeof accidental == 'undefined' || valid_accidentals.indexOf(accidental) !== -1 )) {
-                callback(note, accidental);
-                return true;
+                if(callback){ callback(note, accidental)};
+                return { note: note, accidental: accidental };
             } else {
                 _notify('warn', 'Invalid note entered');
                 return false;
@@ -115,18 +115,17 @@
             var result = [];
             for (var i = 0; i < _notes.length; i++ ) {
                 if (_notes[i].semitones == semitones) {
-                    if(!enharmonic_type || _notes[i].note.length == 1 || (enharmonic_type && _notes[i].note.indexOf(enharmonic_type) !== -1)) {
+                    if(!enharmonic_type || _notes[i].name.length == 1 || (enharmonic_type && _notes[i].name.indexOf(enharmonic_type) !== -1)) {
                         result.push(_notes[i])
                     }
                 }
             }
-            console.log(result);
             return result[0];
         }
 
         this.find_by_note_name = function(note) {
             for (var i = 0; i < _notes.length; i++ ) {
-                if (_notes[i].note == note) {
+                if (_notes[i].name == note) {
                     return _notes[i];
                     break;
                 }
@@ -152,10 +151,11 @@
             6: { type: 'major', semitones: 9 },
             7: { type: 'major', semitones: 11 },
             8: { type: 'perfect', semitones: 12 },
-            //9: { type: 'perfect', semitones: 0 },
-            //10: { type: 'perfect', semitones: 0 },
-            //11: { type: 'perfect', semitones: 0 },
-            //12: { type: 'perfect', semitones: 0 }
+            9: { type: 'major', semitones: 2 },
+            10: { type: 'major', semitones: 4 },
+            11: { type: 'perfect', semitones: 5 },
+            12: { type: 'perfect', semitones: 7 },
+            13: { type: 'perfect', semitones: 9 }
         }
 
         var _alterations = {
@@ -179,7 +179,7 @@
 
                 interval = interval.join('');
                 if(callback) {
-                    callback(parseInt(interval), alteration_name, alteration_value);
+                    return callback(parseInt(interval), alteration_name, alteration_value);
                 }
                 return interval;
             } else {
@@ -196,17 +196,17 @@
          */
         this.note_at_interval = function(root, interval) {
 
-            _notes.validate_note(root, function(note, accidental) {
+            var note = _notes.validate_note(root); //, function(note, accidental) {
 
-                _parse_interval(interval, function(interval, alteration_name, alteration_value) {
+            if(note) {
+                var note_object = _parse_interval(interval, function(interval, alteration_name, alteration_value) {
 
                     var int = _intervals[interval],
-                        root_note = _notes.find_by_note_name(note.note),
+                        root_note = _notes.find_by_note_name(note.note.name),
                         augmented_interval,
                         enharmonic_type = (alteration_name) ? alteration_name.charAt(0) : alteration_name;
-
                     if(!enharmonic_type) {
-                        enharmonic_type = accidental;
+                        enharmonic_type = note.accidental;
                     }
 
                     if (int.type == 'perfect') {
@@ -222,13 +222,11 @@
 
                     calculated_interval = (total_interval < 12) ? total_interval : total_interval - 12;
 
-                    // Apply alteration to interval semitones
-
-                    var interval_note = _notes.find_by_semitones(calculated_interval, enharmonic_type);
-
-                    console.log(interval_note);
+                    return _notes.find_by_semitones(calculated_interval, enharmonic_type);
                 });
-            });
+            }
+
+            return note_object || false;
         }
     }
 
@@ -238,9 +236,10 @@
      * @param args
      * @constructor
      */
-    var Chord = function(args) {
-        this.type = args.type;
-        this.root = args.root;
+    var Chord = function(notes) {
+
+        this.notes = notes;
+
     }
 
     /**
@@ -259,10 +258,23 @@
         /**
          * Create a chord from a given root and recipe
          *
-         * @param args
+         * @param root
+         * @param pattern
+         * @param type
          */
-        this.create_chord = function(args) {
-            _calculator.note_at_interval(args.root, 'b5');
+        this.create_chord = function(root, pattern, type) {
+            if(root && pattern) {
+                var notes = [];
+                notes.push(root);
+
+                for(var i = 0; i < pattern.length; i++) {
+                    var note = _calculator.note_at_interval(root, pattern[i]);
+                    notes.push(note.name);
+                }
+
+                return new Chord(notes);
+            }
+
         }
 
         _initialize();
@@ -338,7 +350,7 @@
             }
 
             if(callback && valid) {
-                callback(parameters);
+                return callback(parameters);
             }
 
             return valid;
@@ -351,7 +363,7 @@
          */
         this.create = function(parameters) {
 
-            _validate_parameters({
+            return _validate_parameters({
                 requires: ['root', 'type']
             }, parameters, function(args) {
 
@@ -359,13 +371,9 @@
                     return chord.type === args.type;
                 });
 
-                var params = {
-                    root: args.root,
-                    type: pattern.type,
-                    recipe: pattern.recipe
-                };
-
-                return _factory.create_chord(params);
+                if(pattern) {
+                    return _factory.create_chord(args.root, pattern.recipe, pattern.type);
+                }
             });
         };
 
