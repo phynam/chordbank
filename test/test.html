@@ -4,18 +4,106 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <script src="../src/chordbank.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 </head>
 <body>
     <script>
-        var chords = new ChordBank();
+        var chords = new ChordBank({
+            library: []
+        });
 
+        //// Chords
+
+        // Create chords from basic strings
+        // Interprit slash and sus chords
         var chord = chords.create({
-            root: 'C',
-            type: 'm7b5'
+            root: 'E',
+            type: 'm7',
+            bass: 'G'
         });
 
         console.log(chord);
 
+        // Transpose chords dynamically
+//        chord.transpose({
+//            direction: 'up',
+//            semitones: 8
+//        })
+
+        $(function() {
+            var first_index = 0;
+            $.each(chord.notes, function(i, d) {
+
+                var $key = $('.piano__key[data-note="' + this + '"], .piano__key[data-enharmonic="' + this + '"]');
+
+                if(i == 0) {
+                    first_index = $key.first().index();
+                }
+
+                $key.each(function() {
+                    if($(this).first().index() >= first_index) {
+                        $(this).first().addClass('active');
+                    }
+                });
+            });
+        })
+
     </script>
+<style>
+    .piano {
+        border: 1px solid #ccc;
+        font-size: 0;
+        display: inline-block;
+    }
+    .piano__key {
+        height: 350px;
+        width: 50px;
+        border-right: 1px solid #ccc;
+        display: inline-block;
+    }
+    .piano__key[data-enharmonic] {
+        width: 30px;
+        height: 200px;
+        background: #000;
+        vertical-align: top;
+        position: absolute;
+        margin-left: -15px;
+        border: 0;
+    }
+    .piano__key.active {
+        background: red;
+        border-color: darkred;
+    }
+    .piano__key:last-child {
+        border: 0;
+    }
+</style>
+
+<div class="piano">
+    <div class="piano__key" data-note="C"></div>
+    <div class="piano__key" data-note="Db" data-enharmonic="C#"></div>
+    <div class="piano__key" data-note="D"></div>
+    <div class="piano__key" data-note="Eb" data-enharmonic="D#"></div>
+    <div class="piano__key" data-note="E"></div>
+    <div class="piano__key" data-note="F"></div>
+    <div class="piano__key" data-note="Gb" data-enharmonic="F#"></div>
+    <div class="piano__key" data-note="G"></div>
+    <div class="piano__key" data-note="Ab" data-enharmonic="G#"></div>
+    <div class="piano__key" data-note="A"></div>
+    <div class="piano__key" data-note="Bb" data-enharmonic="A#"></div>
+    <div class="piano__key" data-note="B"></div>
+    <div class="piano__key" data-note="C"></div>
+    <div class="piano__key" data-note="Db" data-enharmonic="C#"></div>
+    <div class="piano__key" data-note="D"></div>
+    <div class="piano__key" data-note="Eb" data-enharmonic="D#"></div>
+    <div class="piano__key" data-note="E"></div>
+    <div class="piano__key" data-note="F"></div>
+    <div class="piano__key" data-note="Gb" data-enharmonic="F#"></div>
+    <div class="piano__key" data-note="G"></div>
+    <div class="piano__key" data-note="Ab" data-enharmonic="G#"></div>
+    <div class="piano__key" data-note="A"></div>
+    <div class="piano__key" data-note="Bb" data-enharmonic="A#"></div>
+    <div class="piano__key" data-note="B"></div>
+</div>
 </body>
 </html>
